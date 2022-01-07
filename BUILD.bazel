@@ -1,0 +1,12 @@
+cc_binary(
+    name = "compiler",
+    srcs = [
+      "main.c",
+      "greatest.h"
+    ],
+    copts=[
+      "-Wall",
+      "-Wextra",
+      "-pedantic"
+    ]
+)

@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+
+require_relative 'compiler'
+require_relative 'vm'
+require_relative 'disasm'
+require 'optparse'
+
+@options = {}
+
+def options
+  @options
+end
+
+p = OptionParser.new do |p|
+  p.banner = "Usage: rispy [options]"
+
+  p.on("-r", "--repl", "Repl") { |x| options[:repl] = x }
+  p.on("-c", "--compile=FILE", "Compile a file") { |x| options[:compile] = x }
+  p.on("-o", "--out=FILE", "Compiled file out name") { |x| options[:out] = x }
+  p.on("-e", "--execute=FILE", "Execute a compiled file") { |x| options[:execute] = x }
+  p.on("-d", "--disasm=FILE", "Disassemble a compiled file") { |x| options[:d] = x }
+  p.on("-h", "--help", "Help") { |x| options[:help] = x }
+end
+
+def repl
+  prompt_t = 0
+  c = Compiler.new
+  vm = VM.new
+  code = nil
+  loop do
+    print "rispy #{prompt_t}> "
+    prompt_t += 1
+    code = gets.chomp
+    next if code.empty?
+    code = "(print (to-sxp #{code}))"
+    c.compile!(code)
+    vm.execute *c.bytecode
+  rescue StandardError => e
+    puts e
+  ensure
+    c.reset
+  end
+end
+
+def compile
+  c = Compiler.new
+  code = File.read options[:compile]
+  c.compile! code
+  File.open(options[:out], 'wb') { |file| file.write(c.bytecode.pack("s*")) }
+end
+
+def execute_file
+  vm = VM.new
+  vm.execute *File.read(options[:execute]).unpack("s*")
+end
+
+def dis_asm
+  Disasm.dis_asm(*File.read(options[:d]).unpack("s*"))
+end
+
+p.parse!
+
+if options[:repl]
+  repl
+elsif options[:compile]
+  if !options[:out]
+    puts "Compile option requires out option"
+    puts p
+  else
+    compile
+  end
+elsif options[:execute]
+  execute_file
+elsif options[:d]
+  dis_asm
+else
+  puts p
+end

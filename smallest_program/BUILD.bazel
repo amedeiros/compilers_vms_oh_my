@@ -1,0 +1,6 @@
+cc_binary(
+    name = "smallest",
+    srcs = [
+      "main.c"
+    ]
+)
