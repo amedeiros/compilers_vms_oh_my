@@ -1,3 +1,6 @@
+;; Require a ruby library can raise LoadError
+(define rb-require (lambda (x) (rb-class-call "require" "Kernel" x)))
+
 ;; Create a ruby constant from a string
 (define constantize (lambda (x) (rb-call "constantize" x)))
 

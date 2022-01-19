@@ -60,9 +60,18 @@ class Compiler
       compile_word(node)
       return
     elsif node.is_a?(Symbol)
-      if node[0] == "'" # quote
+      if node[0] == "'" || node[0] == "`" # quote
         return if node[1..-1].empty? # list
-        compile_word(node[1..-1]) # PUSHW
+
+        val = node[1..-1]
+        if val =~ /[A-Z,a-z]+/ # string
+          compile_word(val)
+          return
+        end
+
+        # Numeric
+        val = val.include?('.') ? val.to_f : val.to_i
+        @bytecode += [INSTRUCTIONS['PUSH'], val]
         return
       end
 
@@ -78,9 +87,25 @@ class Compiler
     ip = 0
     node = Array.wrap(node)
 
+    # push empty list
+    if node.empty?
+      @bytecode += [INSTRUCTIONS['PUSHL'], compile_number(0)]
+      return
+    end
+
     while ip < node.size
       op = node[ip]
       case op
+      when :eval
+        ip += 1
+        op = node[ip]
+        case op
+        when :`, :"'" then ip += 1
+        else
+          raise "Compile Error: cant eval #{op}" unless op.is_a?(String)
+        end
+        compile_node(node[ip])
+        ip = node.size
       when :load # compile another file
         ip += 1
         file = node[ip].to_s
